@@ -15,6 +15,9 @@ header .status-dot{display:inline-block;width:8px;height:8px;background:var(--gr
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .clock{font-family:'Courier New',monospace;font-size:.85rem;color:var(--dim);margin-top:.25rem}
+.date-time{display:flex;flex-direction:column;gap:.25rem;align-items:center}
+.local-time{font-size:.9rem;color:var(--text)}
+.utc-time{font-size:.75rem;color:var(--dim)}
 .grid{display:grid;grid-template-columns:1fr;gap:1rem;padding:1rem;max-width:1200px;margin:0 auto}
 @media(min-width:768px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
@@ -49,9 +52,20 @@ header .status-dot{display:inline-block;width:8px;height:8px;background:var(--gr
 .bar-yellow .agent-bar-fill{background:var(--yellow)}
 
 /* Activity log */
+/* Budget section */
+.budget-section{grid-column:1/-1;margin-top:.5rem}
+.budget-section h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.2em;color:var(--dim);margin-bottom:.75rem;font-weight:400}
+.budget{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+.budget-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem}
+.budget-rule{display:flex;align-items:center;gap:.75rem;padding:.75rem;background:rgba(255,255,255,.02);border-radius:8px}
+.budget-rule-icon{font-size:1.25rem;flex-shrink:0}
+.budget-rule-text{font-size:.85rem;color:var(--text)}
+.budget-rule-text .percentage{color:var(--accent);font-weight:600}
+.budget-rule-text .desc{color:var(--dim);font-size:.8rem;margin-top:.25rem}
+
 .log-section{grid-column:1/-1;margin-top:.5rem}
 .log-section h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.2em;color:var(--dim);margin-bottom:.75rem;font-weight:400}
-.log{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.log{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-height:300px;overflow-y:auto}
 .log-entry{display:flex;align-items:flex-start;gap:.75rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);font-size:.8rem;transition:background .2s}
 .log-entry:last-child{border-bottom:none}
 .log-entry:hover{background:rgba(255,255,255,.02)}
@@ -71,7 +85,10 @@ footer a{color:var(--accent);text-decoration:none}
 <div class="scanline"></div>
 <header>
 <h1><span class="status-dot"></span>Henry's Virtual Office</h1>
-<div class="clock" id="clock"></div>
+<div class="date-time">
+  <div class="local-time" id="localTime"></div>
+  <div class="utc-time" id="utcTime"></div>
+</div>
 </header>
 
 <div class="grid">
@@ -130,6 +147,42 @@ footer a{color:var(--accent);text-decoration:none}
     <div class="agent-bar"><div class="agent-bar-fill"></div></div>
   </div>
 
+  <div class="budget-section">
+    <h3>Token Budget Strategy</h3>
+    <div class="budget">
+      <div class="budget-rules">
+        <div class="budget-rule">
+          <span class="budget-rule-icon">👥</span>
+          <div class="budget-rule-text">
+            <div><span class="percentage">70%</span> Crew Operations</div>
+            <div class="desc">Sub-agents, research, automation tasks</div>
+          </div>
+        </div>
+        <div class="budget-rule">
+          <span class="budget-rule-icon">🛡️</span>
+          <div class="budget-rule-text">
+            <div><span class="percentage">30%</span> Shawn Buffer</div>
+            <div class="desc">Reserved for Claude Code personal use</div>
+          </div>
+        </div>
+        <div class="budget-rule">
+          <span class="budget-rule-icon">🌙</span>
+          <div class="budget-rule-text">
+            <div>Nighttime Focus</div>
+            <div class="desc">10:30pm-5am AEDT: Heavy sub-agent work</div>
+          </div>
+        </div>
+        <div class="budget-rule">
+          <span class="budget-rule-icon">☀️</span>
+          <div class="budget-rule-text">
+            <div>Daytime Conservation</div>
+            <div class="desc">8am-10:30pm AEDT: Light usage, save quota</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="log-section">
     <h3>Activity Log</h3>
     <div class="log" id="log">
@@ -183,12 +236,23 @@ footer a{color:var(--accent);text-decoration:none}
 
 <script>
 function pad(n){return String(n).padStart(2,'0')}
-function updateClock(){
+function updateDateTime(){
   const now=new Date();
-  document.getElementById('clock').textContent=
-    now.toUTCString().replace('GMT','UTC');
+  const localTime=now.toLocaleString('en-AU',{
+    timeZone:'Australia/Sydney',
+    weekday:'short',
+    month:'short',
+    day:'numeric',
+    hour:'2-digit',
+    minute:'2-digit',
+    second:'2-digit'
+  });
+  const utcTime=now.toUTCString().replace('GMT','UTC');
+  
+  document.getElementById('localTime').textContent=localTime+' AEDT';
+  document.getElementById('utcTime').textContent=utcTime;
 }
-setInterval(updateClock,1000);updateClock();
+setInterval(updateDateTime,1000);updateDateTime();
 
 // Fake running timers
 const starts={max:222,ruby:118,kai:311};
