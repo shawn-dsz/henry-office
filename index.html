@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Henry's Virtual Office</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--card:#131927;--border:#1e2a3a;--text:#e0e6f0;--dim:#6b7a94;--accent:#3b82f6;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--purple:#a855f7}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.scanline{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:100;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px)}
+header{text-align:center;padding:2rem 1rem 1rem;position:relative}
+header h1{font-size:1.1rem;text-transform:uppercase;letter-spacing:.3em;color:var(--dim);font-weight:400}
+header .status-dot{display:inline-block;width:8px;height:8px;background:var(--green);border-radius:50%;margin-right:8px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.clock{font-family:'Courier New',monospace;font-size:.85rem;color:var(--dim);margin-top:.25rem}
+.grid{display:grid;grid-template-columns:1fr;gap:1rem;padding:1rem;max-width:1200px;margin:0 auto}
+@media(min-width:768px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
+
+/* Manager card */
+.manager{grid-column:1/-1;background:linear-gradient(135deg,#131927 0%,#1a2332 100%);border:1px solid var(--border);border-radius:12px;padding:1.5rem;display:flex;align-items:center;gap:1.25rem;position:relative;overflow:hidden}
+.manager::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.manager-avatar{font-size:3rem;flex-shrink:0}
+.manager h2{font-size:1.25rem;font-weight:600}
+.manager p{color:var(--dim);font-size:.85rem;margin-top:.25rem}
+.manager .stats{display:flex;gap:1.5rem;margin-top:.5rem;font-size:.8rem}
+.manager .stats span{color:var(--dim)}
+.manager .stats strong{color:var(--text)}
+
+/* Agent cards */
+.agent{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;transition:border-color .3s}
+.agent:hover{border-color:#2a3a52}
+.agent-header{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem}
+.agent-emoji{font-size:1.75rem}
+.agent-name{font-weight:600;font-size:1rem}
+.agent-status{margin-left:auto;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;padding:3px 10px;border-radius:99px;font-weight:600}
+.status-working{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.status-idle{background:rgba(107,122,148,.1);color:var(--dim);border:1px solid rgba(107,122,148,.2)}
+.agent-task{font-size:.85rem;color:var(--dim);line-height:1.5;min-height:2.5rem}
+.agent-task strong{color:var(--text);font-weight:500}
+.agent-meta{display:flex;justify-content:space-between;margin-top:1rem;font-size:.75rem;color:var(--dim);font-family:'Courier New',monospace}
+.agent-bar{height:3px;background:var(--border);border-radius:2px;margin-top:.75rem;overflow:hidden}
+.agent-bar-fill{height:100%;border-radius:2px;animation:progress 3s ease-in-out infinite alternate}
+@keyframes progress{0%{width:30%}100%{width:95%}}
+.bar-blue .agent-bar-fill{background:var(--accent)}
+.bar-green .agent-bar-fill{background:var(--green)}
+.bar-yellow .agent-bar-fill{background:var(--yellow)}
+
+/* Activity log */
+.log-section{grid-column:1/-1;margin-top:.5rem}
+.log-section h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.2em;color:var(--dim);margin-bottom:.75rem;font-weight:400}
+.log{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.log-entry{display:flex;align-items:flex-start;gap:.75rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);font-size:.8rem;transition:background .2s}
+.log-entry:last-child{border-bottom:none}
+.log-entry:hover{background:rgba(255,255,255,.02)}
+.log-time{color:var(--dim);font-family:'Courier New',monospace;flex-shrink:0;min-width:5rem}
+.log-agent{flex-shrink:0;width:1.25rem;text-align:center}
+.log-msg{color:var(--dim)}
+.log-msg strong{color:var(--text);font-weight:500}
+.log-status{margin-left:auto;flex-shrink:0;font-size:.7rem;padding:2px 8px;border-radius:99px}
+.done{background:rgba(34,197,94,.12);color:var(--green)}
+.running{background:rgba(59,130,246,.12);color:var(--accent)}
+
+footer{text-align:center;padding:2rem 1rem;font-size:.7rem;color:var(--dim);letter-spacing:.1em}
+footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<header>
+<h1><span class="status-dot"></span>Henry's Virtual Office</h1>
+<div class="clock" id="clock"></div>
+</header>
+
+<div class="grid">
+  <div class="manager">
+    <div class="manager-avatar">🦈</div>
+    <div>
+      <h2>Henry</h2>
+      <p>Manager &middot; Orchestrating sub-agents for Shawn</p>
+      <div class="stats">
+        <span>Agents: <strong>3 online</strong></span>
+        <span>Tasks today: <strong id="taskCount">7</strong></span>
+        <span>Uptime: <strong id="uptime">4h 12m</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="agent bar-blue" id="agent-max">
+    <div class="agent-header">
+      <span class="agent-emoji">🔵</span>
+      <span class="agent-name">Max</span>
+      <span class="agent-status status-working">Working</span>
+    </div>
+    <div class="agent-task"><strong>Researching</strong> flight options SYD→NRT for April trip, comparing prices across carriers</div>
+    <div class="agent-meta">
+      <span id="max-time">00:03:42</span>
+      <span>CPU 12%</span>
+    </div>
+    <div class="agent-bar"><div class="agent-bar-fill"></div></div>
+  </div>
+
+  <div class="agent bar-green" id="agent-ruby">
+    <div class="agent-header">
+      <span class="agent-emoji">🟢</span>
+      <span class="agent-name">Ruby</span>
+      <span class="agent-status status-working">Working</span>
+    </div>
+    <div class="agent-task"><strong>Drafting</strong> weekly newsletter email with project updates and calendar summary</div>
+    <div class="agent-meta">
+      <span id="ruby-time">00:01:58</span>
+      <span>CPU 8%</span>
+    </div>
+    <div class="agent-bar"><div class="agent-bar-fill"></div></div>
+  </div>
+
+  <div class="agent bar-yellow" id="agent-kai">
+    <div class="agent-header">
+      <span class="agent-emoji">🟡</span>
+      <span class="agent-name">Kai</span>
+      <span class="agent-status status-working">Working</span>
+    </div>
+    <div class="agent-task"><strong>Building</strong> this Virtual Office dashboard and deploying to Surge</div>
+    <div class="agent-meta">
+      <span id="kai-time">00:05:11</span>
+      <span>CPU 15%</span>
+    </div>
+    <div class="agent-bar"><div class="agent-bar-fill"></div></div>
+  </div>
+
+  <div class="log-section">
+    <h3>Activity Log</h3>
+    <div class="log" id="log">
+      <div class="log-entry">
+        <span class="log-time">04:25</span>
+        <span class="log-agent">🟡</span>
+        <span class="log-msg"><strong>Kai</strong> started building Virtual Office dashboard</span>
+        <span class="log-status running">running</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">04:22</span>
+        <span class="log-agent">🟢</span>
+        <span class="log-msg"><strong>Ruby</strong> started drafting weekly newsletter</span>
+        <span class="log-status running">running</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">04:18</span>
+        <span class="log-agent">🔵</span>
+        <span class="log-msg"><strong>Max</strong> began flight research for April trip</span>
+        <span class="log-status running">running</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">04:02</span>
+        <span class="log-agent">🟢</span>
+        <span class="log-msg"><strong>Ruby</strong> completed calendar sync — 4 events this week</span>
+        <span class="log-status done">done</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">03:45</span>
+        <span class="log-agent">🔵</span>
+        <span class="log-msg"><strong>Max</strong> finished GitHub repo cleanup — archived 3 stale repos</span>
+        <span class="log-status done">done</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">03:31</span>
+        <span class="log-agent">🟡</span>
+        <span class="log-msg"><strong>Kai</strong> completed memory file organisation for Feb 2026</span>
+        <span class="log-status done">done</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">02:10</span>
+        <span class="log-agent">🦈</span>
+        <span class="log-msg"><strong>Henry</strong> session started — morning shift</span>
+        <span class="log-status done">done</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Powered by <a href="https://openclaw.ai">OpenClaw</a> &middot; henry-office.surge.sh</footer>
+
+<script>
+function pad(n){return String(n).padStart(2,'0')}
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').textContent=
+    now.toUTCString().replace('GMT','UTC');
+}
+setInterval(updateClock,1000);updateClock();
+
+// Fake running timers
+const starts={max:222,ruby:118,kai:311};
+function tick(){
+  for(const[id,s]of Object.entries(starts)){
+    starts[id]++;const t=starts[id];
+    const el=document.getElementById(id+'-time');
+    if(el)el.textContent=pad(Math.floor(t/3600))+':'+pad(Math.floor(t%3600/60))+':'+pad(t%60);
+  }
+}
+setInterval(tick,1000);tick();
+
+// Uptime
+let up=4*3600+12*60;
+setInterval(()=>{up++;document.getElementById('uptime').textContent=
+  Math.floor(up/3600)+'h '+pad(Math.floor(up%3600/60))+'m'},1000);
+</script>
+</body>
+</html>
